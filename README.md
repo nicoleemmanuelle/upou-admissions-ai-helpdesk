@@ -86,13 +86,55 @@ No Answer Found → DynamoDB / AWS SES (Ticketing)
 ```
 upou-admissions-ai-helpdesk/
 │
-├── frontend/              # Chat UI
-├── backend/               # Lambda + OpenAI logic
-├── data-processing/       # Data cleaning & formatting
-├── infrastructure/        # Terraform scripts
-├── ticketing/             # Ticket system
-├── integration/           # API + testing
-├── docs/                  # Documentation
+├── frontend/                 # Member 6 & 7 - Chat UI
+│   ├── public/
+│   ├── src/
+│   │   ├── components/
+│   │   │   ├── ChatBox.js
+│   │   │   ├── Message.js
+│   │   ├── App.js
+│   │   ├── api.js
+│   ├── package.json
+│
+├── backend/                  # Member 4 & 5 - Lambda + OpenAI logic
+│   ├── lambda/
+│   │   ├── handler.py
+│   │   ├── openai_service.py
+│   │   ├── s3_retriever.py
+│   │   ├── prompt.txt
+│   │   └── requirements.txt
+│
+├── data-processing/          # Member 2 & 3 - Data cleaning & formatting
+│   ├── raw/
+│   ├── processed/
+│   ├── scripts/
+│   │   ├── clean_data.py
+│   │   ├── format_to_md.py
+│   │   └── upload_to_s3.py
+│
+├── infrastructure/           # Member 8 - Terraform scripts
+│   ├── terraform/
+│   │   ├── main.tf
+│   │   ├── variables.tf
+│   │   ├── outputs.tf
+│   │   └── terraform.tfvars
+│
+├── ticketing/                # Member 9 - Ticketing system
+│   ├── create_ticket.py
+│   ├── ses_email.py
+│   └── dynamodb.py
+│
+├── integration/              # Member 1 - API + testing
+│   ├── api_gateway.py
+│   └── end_to_end_test.py
+│
+├── docs/                     # Documentation
+│   ├── architecture.md
+│   ├── setup_guide.md
+│
+├── .env.example
+├── README.md
+└── .gitignore
 ```
 
 ---
