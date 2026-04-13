@@ -3,15 +3,14 @@
 # 📘 UPOU Admissions AI Helpdesk Assistant
 
 ## 👥 Group Members
-- Member 1 – Project Lead / Integration  
-- Member 2 – Knowledge Base Engineer  
-- Member 3 – Knowledge Base Engineer  
-- Member 4 – Backend Developer  
-- Member 5 – AI Engineer  
-- Member 6 – Frontend Developer  
-- Member 7 – Frontend–Backend Integrator  
-- Member 8 – Cloud Engineer (Terraform)  
-- Member 9 – Ticketing & QA Engineer  
+- Christian / Nicole – Project Lead / Integration
+- Christian / Egie – Knowledge Base Engineer
+- Kim – Backend Developer
+- Nicole – AI Engineer
+- Elvin / Rosel – Frontend Developer
+- John Rey – Frontend–Backend Integrator
+- Jv – Cloud Engineer (Terraform)
+- Adrian – Ticketing & QA Engineer
 
 ---
 
