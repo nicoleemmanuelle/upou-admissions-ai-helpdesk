@@ -1,0 +1,31 @@
+@import "tailwindcss";
+
+@theme {
+  --color-upou-maroon: #7b1113;
+  --color-upou-gold: #f4b400;
+  --color-upou-ink: #0b1220;
+}
+
+/* App-level polish */
+:root {
+  color-scheme: light;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background:
+    radial-gradient(1200px 600px at 10% -10%, rgba(244, 180, 0, 0.22), transparent 55%),
+    radial-gradient(900px 520px at 95% 0%, rgba(123, 17, 19, 0.18), transparent 55%),
+    linear-gradient(180deg, #fbfbfc 0%, #f5f6f8 100%);
+  color: #0b1220;
+}
+
+* {
+  box-sizing: border-box;
+}
+
