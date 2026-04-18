@@ -55,7 +55,7 @@ def ask_openai(user_query: str, context: str, model: Optional[str] = None) -> st
     }).encode("utf-8")
 
     req = request.Request(
-        url="https://api.openai.com/v1/chat/completions",
+        url="https://is215-openai.upou.io/v1/chat/completions",
         data=payload,
         headers={
             "Content-Type": "application/json",
