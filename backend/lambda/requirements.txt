@@ -1,0 +1,4 @@
+boto3>=1.26.0
+
+# Note: AWS Lambda provides boto3 in the runtime environment; boto3 is listed
+# here for local testing and packaging. Pin versions as needed for reproducible builds.
