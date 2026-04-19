@@ -18,6 +18,7 @@ This project provisions a **serverless AI helpdesk system** using AWS:
 * **API Gateway** – exposes `/ask` endpoint
 * **DynamoDB** – stores fallback support tickets
 * **EC2 Instance** – hosts frontend
+* **Security Group** – manages networking rules for the EC2 instance
 * **IAM Role** – Lambda permissions (optional creation)
 
 ---
