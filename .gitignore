@@ -1,3 +1,8 @@
+# Terraform
+infrastructure/terraform/.terraform/*
+infrastructure/terraform/.terraform.lock.hcl
+infrastructure/terraform/*.tfstate
+infrastructure/terraform/*.tfstate.backup
 infrastructure/terraform/terraform.tfvars
 
 # Frontend / Node tooling (pnpm, Vite, etc.)
