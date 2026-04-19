@@ -1,4 +1,4 @@
-# upou-admissions-ai-helpdesk 
+# upou-admissions-ai-helpdesk
 
 # 📘 UPOU Admissions AI Helpdesk Assistant
 
