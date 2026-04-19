@@ -20,9 +20,9 @@ resource "aws_s3_object" "kb_files" {
 
   bucket = aws_s3_bucket.kb_bucket.id
   key    = each.value
-  source = "../kb/${each.value}"
+  source = "../../knowledge-base/output for S3/${each.value}"
 
-  etag = filemd5("../kb/${each.value}")
+  etag = filemd5("../../knowledge-base/output for S3/${each.value}")
 }
 
 # Upload the local lambda.zip into the knowledge-bucket so Terraform can
@@ -31,10 +31,10 @@ resource "aws_s3_object" "lambda_zip" {
   bucket = aws_s3_bucket.kb_bucket.bucket
   key    = "lambda/lambda.zip"
   # Upload the file that lives in this Terraform module directory.
-  source = "${path.module}/lambda.zip"
+  source = "../../backend/lambda/lambda.zip"
 
   # Use an etag so Terraform updates the object when the file changes.
-  etag = filemd5("${path.module}/lambda.zip")
+  etag = filemd5("../../backend/lambda/lambda.zip")
 
   # Keep the object public ACL off (default). Adjust server-side encryption
   # or ACLs here if required by your org.
