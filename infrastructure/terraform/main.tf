@@ -16,13 +16,13 @@ resource "aws_s3_bucket" "kb_bucket" {
 }
 
 resource "aws_s3_object" "kb_files" {
-  for_each = fileset("../kb", "*")
+  for_each = fileset("../../knowledge-base/output_for_s3", "*.{csv,md}")
 
   bucket = aws_s3_bucket.kb_bucket.id
   key    = each.value
-  source = "../../knowledge-base/output for S3/${each.value}"
+  source = "../../knowledge-base/output_for_s3/${each.value}"
 
-  etag = filemd5("../../knowledge-base/output for S3/${each.value}")
+  etag = filemd5("../../knowledge-base/output_for_s3/${each.value}")
 }
 
 # Upload the local lambda.zip into the knowledge-bucket so Terraform can
