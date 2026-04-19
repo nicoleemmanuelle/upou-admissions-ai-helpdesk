@@ -16,25 +16,25 @@ resource "aws_s3_bucket" "kb_bucket" {
 }
 
 resource "aws_s3_object" "kb_files" {
-  for_each = fileset("../kb", "*")
+  for_each = fileset("../../knowledge-base/output for S3", "*.csv")
 
   bucket = aws_s3_bucket.kb_bucket.id
   key    = each.value
-  source = "../kb/${each.value}"
+  source = "../../knowledge-base/output for S3/${each.value}"
 
-  etag = filemd5("../kb/${each.value}")
+  etag = filemd5("../../knowledge-base/output for S3/${each.value}")
 }
 
 resource "aws_lambda_function" "upou_ai" {
   function_name = "upou-ai-function"
 
-  filename         = "../lambda/lambda.zip"
-  source_code_hash = filebase64sha256("../lambda/lambda.zip")
+  filename         = "../../backend/lambda/lambda.zip"
+  source_code_hash = filebase64sha256("../../backend/lambda/lambda.zip")
 
-  handler = "lambda_function.lambda_handler"
+  handler = "handler.lambda_handler"
   runtime = "python3.12"
 
-  role = "arn:aws:iam::967807312716:role/LabRole"
+  role = "arn:aws:iam::585385728792:role/LabRole"
 
   timeout      = 30
   memory_size  = 256

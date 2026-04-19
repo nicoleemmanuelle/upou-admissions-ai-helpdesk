@@ -1,1 +1,16 @@
 infrastructure/terraform/terraform.tfvars
+infrastructure/terraform/.terraform/
+infrastructure/terraform/.terraform.lock.hcl
+infrastructure/terraform/terraform.tfstate
+infrastructure/terraform/terraform.tfstate.backup
+
+# Lambda build artifacts
+backend/lambda/lambda.zip
+backend/lambda/*/
+backend/lambda/six.py
+backend/lambda/typing_extensions.py
+
+# Frontend
+frontend/node_modules/
+frontend/build/
+frontend/package-lock.json
