@@ -1,2 +1,4 @@
 aws_region     = "us-east-1"
-openai_api_key = "Replace_Me"
+OPENAI_API_KEY = "Replace_Me"
+create_role = false
+lambda_role = "arn:aws:iam::<Replace_Me>:role/LabRole"

@@ -16,34 +16,77 @@ resource "aws_s3_bucket" "kb_bucket" {
 }
 
 resource "aws_s3_object" "kb_files" {
-  for_each = fileset("../kb", "*")
+  for_each = fileset("../../knowledge-base/output_for_s3", "*.{csv,md}")
 
   bucket = aws_s3_bucket.kb_bucket.id
   key    = each.value
-  source = "../kb/${each.value}"
+  source = "../../knowledge-base/output_for_s3/${each.value}"
 
-  etag = filemd5("../kb/${each.value}")
+  etag = filemd5("../../knowledge-base/output_for_s3/${each.value}")
 }
 
+# Upload the local lambda.zip into the knowledge-bucket so Terraform can
+# point Lambda to an S3 object instead of doing a direct large upload.
+resource "aws_s3_object" "lambda_zip" {
+  bucket = aws_s3_bucket.kb_bucket.bucket
+  key    = "lambda/lambda.zip"
+  # Upload the file that lives in this Terraform module directory.
+  source = "../../backend/lambda/lambda.zip"
+
+  # Use an etag so Terraform updates the object when the file changes.
+  etag = filemd5("../../backend/lambda/lambda.zip")
+
+  # Keep the object public ACL off (default). Adjust server-side encryption
+  # or ACLs here if required by your org.
+}
+
+# Lambda Function
 resource "aws_lambda_function" "upou_ai" {
-  function_name = "upou-ai-function"
+  function_name = "upou-helpdesk-lambda"
+  # If Terraform created the role (var.create_role = true) use its ARN,
+  # otherwise use the existing role ARN supplied in var.lambda_role.
+  # element(concat(...), 0) returns the created role ARN when present,
+  # or falls back to var.lambda_role when the list is empty.
+  role = element(concat(aws_iam_role.lambda_role.*.arn, [var.lambda_role]), 0)
+  handler       = "handler.lambda_handler"
+  runtime       = "python3.11"
 
-  filename         = "../lambda/lambda.zip"
-  source_code_hash = filebase64sha256("../lambda/lambda.zip")
+  # Increase timeout so external requests (S3, OpenAI) have time to complete.
+  timeout       = 15
+  memory_size   = 256
 
-  handler = "lambda_function.lambda_handler"
-  runtime = "python3.12"
-
-  role = "arn:aws:iam::967807312716:role/LabRole"
-
-  timeout      = 30
-  memory_size  = 256
-
+  # Use S3 deployment to avoid large direct uploads from the CLI. Terraform
+  # will upload the local file via aws_s3_bucket_object.lambda_zip and then
+  # reference it here.
+  s3_bucket = aws_s3_bucket.kb_bucket.bucket
+  s3_key    = aws_s3_object.lambda_zip.key
+  depends_on = [aws_s3_object.lambda_zip]
+  
   environment {
     variables = {
-      OPENAI_API_KEY = var.openai_api_key
-      BUCKET_NAME    = aws_s3_bucket.kb_bucket.id
+      OPENAI_API_KEY     = "${var.OPENAI_API_KEY}"
+      S3_BUCKET          = "${aws_s3_bucket.kb_bucket.bucket}"
+      DDB_TICKETS_TABLE  = "${aws_dynamodb_table.tickets.name}"
+      OPENAI_MODEL       = "${var.OPENAI_MODEL}"
+      LOG_LEVEL          = "INFO"
     }
+  }
+}
+
+# DynamoDB
+resource "aws_dynamodb_table" "tickets" {
+  name         = "tickets"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "id"
+
+  attribute {
+    name = "id"
+    type = "S"
+  }
+
+  tags = {
+    Name        = "UPOU Ticket Table"
+    Environment = "dev"
   }
 }
 
@@ -92,23 +135,6 @@ resource "aws_api_gateway_deployment" "deployment" {
 
   rest_api_id = aws_api_gateway_rest_api.upou_api.id
   stage_name  = "dev"
-}
-
-resource "aws_dynamodb_table" "tickets" {
-  name         = "upou-tickets"
-  billing_mode = "PAY_PER_REQUEST"
-
-  hash_key = "ticket_id"
-
-  attribute {
-    name = "ticket_id"
-    type = "S"
-  }
-
-  tags = {
-    Name        = "UPOU Ticket Table"
-    Environment = "dev"
-  }
 }
 
 output "api_url" {
