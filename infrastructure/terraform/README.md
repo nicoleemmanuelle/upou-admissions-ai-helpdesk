@@ -59,6 +59,7 @@ Install:
 * AWS CLI
 * Git
 * Python 3
+* zip (for Lambda packaging)
 
 ---
 
@@ -83,15 +84,19 @@ sudo apt install terraform awscli git python3 zip -y
 
 ## 🔐 Step 1: Configure AWS Credentials
 
-```
+```bash
+# Option 1: Environment variables (temporary session, e.g. AWS Academy)
 export AWS_ACCESS_KEY_ID="YOUR_KEY"
 export AWS_SECRET_ACCESS_KEY="YOUR_SECRET"
 export AWS_SESSION_TOKEN="YOUR_TOKEN"
+
+# Option 2: AWS CLI config (recommended for long-term use)
+aws configure
 ```
 
 Verify:
 
-```
+```bash
 aws sts get-caller-identity
 ```
 
@@ -105,20 +110,29 @@ cd infrastructure/terraform
 
 ---
 
-## 📝 Step 3: Create Variables File
+### 📝 Step 3: Create Variables File
 
-```
+```bash
 cp terraform.tfvars.example terraform.tfvars
 vim terraform.tfvars
 ```
 
 Update values:
 
+```hcl
+aws_region      = "us-east-1"
+OPENAI_API_KEY  = "YOUR_OPENAI_API_KEY"
+create_role     = true
+lambda_role     = ""  # Leave empty if create_role = true
 ```
-aws_region     = "us-east-1"
-openai_api_key = "YOUR_OPENAI_KEY"
-create_role    = false
-lambda_role    = "YOUR_EXISTING_ROLE_ARN"
+
+### Using an existing IAM role
+
+If you already have a role:
+
+```hcl
+create_role  = false
+lambda_role  = "arn:aws:iam::123456789012:role/your-existing-role"
 ```
 
 > Set `create_role = true` if Terraform should create the IAM role.
