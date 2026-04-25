@@ -1,11 +1,27 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { sendQuery } from "./api";
 
 function App() {
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState(() => {
+    // Retrieve chat history from localStorage on initial load
+    const saved = localStorage.getItem("chat_history");
+    return saved ? JSON.parse(saved) : [];
+  });
+  
   const [input, setInput] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState("");
+  const messagesEndRef = useRef(null);
+
+  // Save messages to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem("chat_history", JSON.stringify(messages));
+  }, [messages]);
+
+  // Scroll to bottom when messages update
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
   const handleSend = async () => {
     const trimmed = input.trim();
@@ -50,6 +66,19 @@ function App() {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              {/* Clear Chat Button */}
+              {messages.length > 0 && (
+                <button
+                  onClick={() => {
+                    setMessages([]);
+                    localStorage.removeItem("chat_history");
+                  }}
+                  className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white px-3 py-1 text-xs text-black/70 hover:bg-gray-50 transition"
+                  title="Clear chat history"
+                >
+                  Clear Chat
+                </button>
+              )}
               <span className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white px-3 py-1 text-xs text-black/70">
                 Official KB only (RAG)
               </span>
@@ -107,6 +136,7 @@ function App() {
                       </div>
                     </div>
                   ) : null}
+                  <div ref={messagesEndRef} />
                 </div>
               )}
             </div>
