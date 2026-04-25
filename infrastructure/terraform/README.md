@@ -76,7 +76,105 @@ Install:
 
 ---
 
-## 🖥️ Setup
+## 🖥️ Setup [SIMPLIFIED VERSION!!!]
+
+### 🍎 macOS
+
+```
+brew install terraform awscli git python
+```
+
+---
+
+### 🪟 Windows (WSL)
+
+```
+sudo apt update
+sudo apt install terraform awscli git python3 zip -y
+```
+
+---
+
+## Step 1: Configure AWS Credentials
+
+```
+export AWS_ACCESS_KEY_ID="YOUR_KEY"
+export AWS_SECRET_ACCESS_KEY="YOUR_SECRET"
+export AWS_SESSION_TOKEN="YOUR_TOKEN"
+```
+
+Verify:
+
+```
+aws sts get-caller-identity
+```
+
+## Step 2: Backend Preparation
+Navigate to the Lambda directory and run the packaging script to prepare your deployment package.
+
+```
+cd backend/lambda
+bash package_clean.sh
+```
+
+## Step 3: Infrastructure Provisioning (Phase 1)
+Initialize and apply the Terraform configuration to set up the backend services.
+
+```
+cd ../../infrastructure/terraform
+terraform init
+terraform apply
+```
+
+When prompted, type yes to confirm.
+
+Important: Copy the api_url from the Terraform output. It should look like this:
+```
+https://<api_id>.execute-api.us-east-1.amazonaws.com/dev/ask
+```
+
+## Step 4: Frontend Configuration & Build
+Configure the frontend to communicate with your new API and build the static files.
+
+```
+cd ../../frontend
+
+# Create the environment file
+touch .env
+
+# Add your API URL to .env (replace with your actual output)
+echo "VITE_API_URL=https://8nfz66pu2f.execute-api.us-east-1.amazonaws.com/dev/ask" > .env
+
+# Install dependencies and build
+npm install
+npm run build
+```
+
+## Step 5: Infrastructure Provisioning (Phase 2)
+Trigger a redeploy of the frontend instance to ensure it picks up the new build artifacts.
+
+```
+cd ../infrastructure/terraform
+
+# Taint the instance to force a replacement
+terraform taint aws_instance.frontend
+
+# Apply changes
+terraform apply
+```
+When prompted, type yes to confirm.
+
+## Step 6:  Access the Application
+Once the apply is complete, copy the ec2_public_ip from the output.
+
+Access the application in your browser at:
+```
+http://<ec2_public_ip>
+```
+
+---
+
+## 🖥️ Setup [DETAILED VERSION!!!]
 
 ### 🍎 macOS
 
