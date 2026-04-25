@@ -4,9 +4,10 @@ variable "aws_region" {
     default = "us-east-1"
 }
 
-variable "OPENAI_API_KEY" {
-	description = "OpenAI API key to use from Lambda environment"
-	type        = string
+variable "openai_api_key" {
+  description = "OpenAI API key to use from Lambda environment"
+  type        = string
+  sensitive   = true
 }
 
 variable "OPENAI_MODEL" {

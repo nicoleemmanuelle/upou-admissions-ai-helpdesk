@@ -74,7 +74,7 @@ resource "aws_lambda_function" "upou_ai" {
   
   environment {
     variables = {
-      OPENAI_API_KEY     = "${var.OPENAI_API_KEY}"
+      OPENAI_API_KEY = var.openai_api_key
       S3_BUCKET          = "${aws_s3_bucket.kb_bucket.bucket}"
       DDB_TICKETS_TABLE  = "${aws_dynamodb_table.tickets.name}"
       OPENAI_MODEL       = "${var.OPENAI_MODEL}"
@@ -120,6 +120,13 @@ resource "aws_api_gateway_method" "post_method" {
   authorization = "NONE"
 }
 
+resource "aws_api_gateway_method" "options_method" {
+  rest_api_id   = aws_api_gateway_rest_api.upou_api.id
+  resource_id   = aws_api_gateway_resource.ask.id
+  http_method   = "OPTIONS"
+  authorization = "NONE"
+}
+
 # Integration with Lambda
 resource "aws_api_gateway_integration" "lambda_integration" {
   rest_api_id = aws_api_gateway_rest_api.upou_api.id
@@ -129,6 +136,48 @@ resource "aws_api_gateway_integration" "lambda_integration" {
   integration_http_method = "POST"
   type                    = "AWS_PROXY"
   uri                     = aws_lambda_function.upou_ai.invoke_arn
+}
+
+resource "aws_api_gateway_integration" "options_integration" {
+  rest_api_id = aws_api_gateway_rest_api.upou_api.id
+  resource_id = aws_api_gateway_resource.ask.id
+  http_method = aws_api_gateway_method.options_method.http_method
+
+  type = "MOCK"
+
+  request_templates = {
+    "application/json" = "{\"statusCode\": 200}"
+  }
+}
+
+resource "aws_api_gateway_method_response" "options_response" {
+  rest_api_id = aws_api_gateway_rest_api.upou_api.id
+  resource_id = aws_api_gateway_resource.ask.id
+  http_method = aws_api_gateway_method.options_method.http_method
+  status_code = "200"
+
+  response_models = {
+    "application/json" = "Empty"
+  }
+
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Origin"  = true
+    "method.response.header.Access-Control-Allow-Methods" = true
+    "method.response.header.Access-Control-Allow-Headers" = true
+  }
+}
+
+resource "aws_api_gateway_integration_response" "options_integration_response" {
+  rest_api_id = aws_api_gateway_rest_api.upou_api.id
+  resource_id = aws_api_gateway_resource.ask.id
+  http_method = aws_api_gateway_method.options_method.http_method
+  status_code = aws_api_gateway_method_response.options_response.status_code
+
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Origin"  = "'*'"
+    "method.response.header.Access-Control-Allow-Methods" = "'POST,OPTIONS'"
+    "method.response.header.Access-Control-Allow-Headers" = "'Content-Type'"
+  }
 }
 
 # Allow API Gateway to invoke Lambda
@@ -141,7 +190,12 @@ resource "aws_lambda_permission" "apigw" {
 
 # Deploy API
 resource "aws_api_gateway_deployment" "deployment" {
-  depends_on = [aws_api_gateway_integration.lambda_integration]
+  depends_on = [
+    aws_api_gateway_integration.lambda_integration,
+    aws_api_gateway_integration.options_integration,
+    aws_api_gateway_integration_response.options_integration_response,
+    aws_api_gateway_method_response.options_response
+  ]
 
   rest_api_id = aws_api_gateway_rest_api.upou_api.id
   stage_name  = "dev"
