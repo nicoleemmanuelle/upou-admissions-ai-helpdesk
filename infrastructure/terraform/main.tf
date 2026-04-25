@@ -281,6 +281,8 @@ resource "aws_instance" "frontend" {
     curl -f -o "$file" "https://${aws_s3_bucket.kb_bucket.bucket}.s3.amazonaws.com/frontend/$file"
   done
 
+  curl -o assets/up-seal.png https://${aws_s3_bucket.kb_bucket.bucket}.s3.amazonaws.com/frontend/assets/up-seal.png || true
+
   systemctl restart nginx
 
   echo "DONE"
