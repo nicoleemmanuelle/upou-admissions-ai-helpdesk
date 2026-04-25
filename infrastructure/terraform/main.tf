@@ -40,6 +40,16 @@ resource "aws_s3_object" "lambda_zip" {
   # or ACLs here if required by your org.
 }
 
+resource "aws_s3_object" "frontend_files" {
+  for_each = fileset("../../frontend/dist", "**")
+
+  bucket = aws_s3_bucket.kb_bucket.id
+  key    = "frontend/${each.value}"
+  source = "../../frontend/dist/${each.value}"
+
+  etag = filemd5("../../frontend/dist/${each.value}")
+}
+
 # Lambda Function
 resource "aws_lambda_function" "upou_ai" {
   function_name = "upou-helpdesk-lambda"
@@ -209,9 +219,72 @@ resource "aws_instance" "frontend" {
   ami           = data.aws_ami.ubuntu.id
   instance_type = "t2.micro"
 
+  key_name = "vockey"
+
   vpc_security_group_ids = [aws_security_group.ec2_sg.id]
 
   associate_public_ip_address = true
+
+  user_data = <<-EOF
+  #!/bin/bash
+
+  exec > /var/log/user-data.log 2>&1
+
+  echo "START"
+
+  sleep 30
+
+  # Enable nginx repo properly
+  amazon-linux-extras enable nginx1
+
+  # Install nginx
+  yum clean metadata
+  yum install -y nginx
+
+  # Install aws cli
+  yum install -y aws-cli
+
+  # Start nginx
+  systemctl start nginx
+  systemctl enable nginx
+
+  echo "NGINX STARTED"
+
+  mkdir -p /usr/share/nginx/html
+  rm -rf /usr/share/nginx/html/*
+
+  #aws s3 cp s3://${aws_s3_bucket.kb_bucket.bucket}/frontend/ /usr/share/nginx/html/ --recursive || echo "S3 failed"
+
+  #cd /usr/share/nginx/html
+
+  # Download main file
+  #curl -O https://${aws_s3_bucket.kb_bucket.bucket}.s3.amazonaws.com/frontend/index.html
+
+  # Download assets
+  #mkdir -p assets
+
+  #curl -o assets/index-CGm9M2iT.js https://${aws_s3_bucket.kb_bucket.bucket}.s3.amazonaws.com/frontend/assets/index-CGm9M2iT.js
+  #curl -o assets/index-BXa_bV75.css https://${aws_s3_bucket.kb_bucket.bucket}.s3.amazonaws.com/frontend/assets/index-BXa_bV75.css
+  #curl -o assets/up-seal.png https://${aws_s3_bucket.kb_bucket.bucket}.s3.amazonaws.com/frontend/assets/up-seal.png
+
+  cd /usr/share/nginx/html
+
+  curl -O https://${aws_s3_bucket.kb_bucket.bucket}.s3.amazonaws.com/frontend/index.html
+
+  mkdir -p assets
+
+  # Extract asset filenames from index.html
+  ASSETS=$(grep -o 'assets/[^"]*' index.html | sort -u)
+
+  for file in $ASSETS; do
+    echo "Downloading $file"
+    curl -f -o "$file" "https://${aws_s3_bucket.kb_bucket.bucket}.s3.amazonaws.com/frontend/$file"
+  done
+
+  systemctl restart nginx
+
+  echo "DONE"
+  EOF
 
   tags = {
     Name        = "UPOU Frontend EC2"
@@ -222,4 +295,30 @@ resource "aws_instance" "frontend" {
 # Output public IP
 output "ec2_public_ip" {
   value = aws_instance.frontend.public_ip
+}
+
+
+resource "aws_s3_bucket_public_access_block" "kb_public" {
+  bucket = aws_s3_bucket.kb_bucket.id
+
+  block_public_acls       = false
+  block_public_policy     = false
+  ignore_public_acls      = false
+  restrict_public_buckets = false
+}
+
+resource "aws_s3_bucket_policy" "public_read" {
+  bucket = aws_s3_bucket.kb_bucket.id
+
+  depends_on = [aws_s3_bucket_public_access_block.kb_public]
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      Principal = "*"
+      Action = ["s3:GetObject"]
+      Resource = "${aws_s3_bucket.kb_bucket.arn}/*"
+    }]
+  })
 }

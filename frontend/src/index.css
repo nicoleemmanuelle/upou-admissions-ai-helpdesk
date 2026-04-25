@@ -1,4 +1,6 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 @theme {
   --color-upou-maroon: #7b1113;
@@ -28,4 +30,3 @@ body {
 * {
   box-sizing: border-box;
 }
-
