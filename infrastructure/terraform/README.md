@@ -175,6 +175,142 @@ yes
 
 ---
 
+## 🌐 Step 8: Frontend Deployment (EC2 + S3)
+
+The frontend is automatically deployed using:
+
+* **EC2 (nginx)** – serves the UI
+* **S3 (public bucket)** – stores built frontend files
+* **Terraform user_data** – bootstraps the server
+
+---
+
+### 📦 Frontend Build (IMPORTANT)
+
+Before running Terraform, build the frontend:
+
+```bash
+cd frontend
+npm install
+npm run build
+```
+
+This generates:
+
+```
+frontend/dist/
+```
+
+---
+
+### ⚙️ How Deployment Works
+
+During `terraform apply`, the EC2 instance:
+
+1. Installs nginx
+2. Downloads `index.html` from S3
+3. Dynamically detects asset files (JS/CSS)
+4. Downloads all required assets
+5. Downloads static images (e.g., logo)
+6. Serves the frontend on port 80
+
+---
+
+### 🧠 Dynamic Asset Handling (IMPORTANT)
+
+The system avoids hardcoded filenames using:
+
+```bash
+grep + dynamic asset download
+```
+
+This ensures:
+
+* Works even after `npm run build`
+* Handles hashed filenames automatically
+* Prevents broken UI after updates
+
+---
+
+### 🖼️ Static Assets Fix (Logo Issue)
+
+Some assets (e.g., images) are not referenced in `index.html`.
+
+Fix applied:
+
+```bash
+manual download via curl
+```
+
+Example:
+
+```
+assets/up-seal.png
+```
+
+---
+
+### 🌍 Access Frontend
+
+After deployment:
+
+```
+http://<ec2_public_ip>
+```
+
+---
+
+### 🧪 Test Frontend
+
+Try:
+
+```
+What programs does UPOU offer?
+```
+
+Expected:
+
+* UI loads correctly
+* Styling works
+* Logo is visible
+* Chat responds correctly
+
+---
+
+### 🔄 Updating Frontend
+
+After making changes:
+
+```bash
+cd frontend
+npm run build
+
+cd ../infrastructure/terraform
+terraform taint aws_instance.frontend
+terraform apply
+```
+
+---
+
+### ⚠️ Notes
+
+* `dist/` is NOT committed (build artifact)
+* Always rebuild before Terraform
+* S3 bucket must remain public (AWS Academy limitation)
+
+---
+
+## 🏁 Updated Summary
+
+* Fully automated infrastructure (Terraform)
+* Serverless AI backend (Lambda + OpenAI)
+* Knowledge-based responses (S3)
+* Ticket fallback system (DynamoDB)
+* Public API (API Gateway)
+* Frontend hosted via EC2 (nginx) with dynamic asset deployment
+* Easy cleanup with script
+
+
 ## 📤 Outputs
 
 After deployment, Terraform will show:
