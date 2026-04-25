@@ -29,24 +29,39 @@ This project provisions a **serverless AI helpdesk system** using AWS:
 upou-admissions-ai-helpdesk/
 ├── backend/
 │   └── lambda/
-│       ├── handler.py
-│       ├── openai_service.py
-│       ├── s3_retriever.py
-│       ├── prompt.txt
-│       ├── package_clean.sh
-│       └── lambda.zip
+│       ├── handler.py                # Main Lambda handler
+│       ├── openai_service.py        # OpenAI integration
+│       ├── s3_retriever.py          # Retrieves context from S3
+│       ├── prompt.txt               # Prompt template for LLM
+│       ├── package_clean.sh         # Script to package Lambda
+│       └── lambda.zip               # Packaged Lambda (build artifact)
+│
+├── frontend/
+│   ├── src/                         # React/Vite source code
+│   ├── public/                      # Static public assets
+│   ├── index.html                  # Entry HTML file
+│   ├── package.json                # Dependencies and scripts
+│   ├── package-lock.json           # Locked dependency versions
+│   ├── vite.config.js              # Vite configuration
+│   ├── tailwind.config.js          # Tailwind CSS config
+│   ├── postcss.config.js           # PostCSS config
+│   └── dist/                       # Build output (NOT committed)
+│
 ├── knowledge-base/
 │   └── output_for_s3/
-│       ├── *.md
-│       └── *.csv
+│       ├── *.md                    # Knowledge base markdown files
+│       └── *.csv                   # Structured knowledge data
+│
 ├── infrastructure/
 │   └── terraform/
-│       ├── main.tf
-│       ├── lambda_role.tf
-│       ├── variables.tf
-│       ├── terraform.tfvars.example
-│       ├── destroy.sh
-│       └── versions.tf
+│       ├── main.tf                 # Main infrastructure definition
+│       ├── lambda_role.tf          # IAM role (optional)
+│       ├── variables.tf            # Input variables
+│       ├── terraform.tfvars.example# Example variables file
+│       ├── destroy.sh              # Cleanup script
+│       └── versions.tf             # Provider versions
+│
+└── .gitignore                      # Ignored files (secrets, builds)
 ```
 
 ---
@@ -63,7 +78,105 @@ Install:
 
 ---
 
-## 🖥️ Setup
+## 🖥️ Setup [SIMPLIFIED VERSION!!!]
+
+### 🍎 macOS
+
+```
+brew install terraform awscli git python
+```
+
+---
+
+### 🪟 Windows (WSL)
+
+```
+sudo apt update
+sudo apt install terraform awscli git python3 zip -y
+```
+
+---
+
+## Step 1: Configure AWS Credentials
+
+```
+export AWS_ACCESS_KEY_ID="YOUR_KEY"
+export AWS_SECRET_ACCESS_KEY="YOUR_SECRET"
+export AWS_SESSION_TOKEN="YOUR_TOKEN"
+```
+
+Verify:
+
+```
+aws sts get-caller-identity
+```
+
+## Step 2: Backend Preparation
+Navigate to the Lambda directory and run the packaging script to prepare your deployment package.
+
+```
+cd backend/lambda
+bash package_clean.sh
+```
+
+## Step 3: Infrastructure Provisioning (Phase 1)
+Initialize and apply the Terraform configuration to set up the backend services.
+
+```
+cd ../../infrastructure/terraform
+terraform init
+terraform apply
+```
+
+When prompted, type yes to confirm.
+
+Important: Copy the api_url from the Terraform output. It should look like this:
+```
+https://<api_id>.execute-api.us-east-1.amazonaws.com/dev/ask
+```
+
+## Step 4: Frontend Configuration & Build
+Configure the frontend to communicate with your new API and build the static files.
+
+```
+cd ../../frontend
+
+# Create the environment file
+touch .env
+
+# Add your API URL to .env (replace with your actual output)
+echo "VITE_API_URL=https://8nfz66pu2f.execute-api.us-east-1.amazonaws.com/dev/ask" > .env
+
+# Install dependencies and build
+npm install
+npm run build
+```
+
+## Step 5: Infrastructure Provisioning (Phase 2)
+Trigger a redeploy of the frontend instance to ensure it picks up the new build artifacts.
+
+```
+cd ../infrastructure/terraform
+
+# Taint the instance to force a replacement
+terraform taint aws_instance.frontend
+
+# Apply changes
+terraform apply
+```
+When prompted, type yes to confirm.
+
+## Step 6:  Access the Application
+Once the apply is complete, copy the ec2_public_ip from the output.
+
+Access the application in your browser at:
+```
+http://<ec2_public_ip>
+```
+
+---
+
+## 🖥️ Setup [DETAILED VERSION!!!]
 
 ### 🍎 macOS
 
@@ -189,6 +302,211 @@ yes
 ```
 
 ---
+
+## 🌐 Step 8: Frontend Deployment (EC2 + S3)
+
+The frontend is automatically deployed using:
+
+* **EC2 (nginx)** – serves the UI
+* **S3 (public bucket)** – stores built frontend files
+* **Terraform user_data** – bootstraps the server
+
+---
+
+### 📦 Frontend Build (IMPORTANT)
+
+Before running Terraform, build the frontend:
+
+```bash
+cd frontend
+npm install
+npm run build
+```
+
+This generates:
+
+```
+frontend/dist/
+```
+
+---
+
+### ⚙️ How Deployment Works
+
+During `terraform apply`, the EC2 instance:
+
+1. Installs nginx
+2. Downloads `index.html` from S3
+3. Dynamically detects asset files (JS/CSS)
+4. Downloads all required assets
+5. Downloads static images (e.g., logo)
+6. Serves the frontend on port 80
+
+---
+
+### 🧠 Dynamic Asset Handling (IMPORTANT)
+
+The system avoids hardcoded filenames using:
+
+```bash
+grep + dynamic asset download
+```
+
+This ensures:
+
+* Works even after `npm run build`
+* Handles hashed filenames automatically
+* Prevents broken UI after updates
+
+---
+
+### 🖼️ Static Assets Fix (Logo Issue)
+
+Some assets (e.g., images) are not referenced in `index.html`.
+
+Fix applied:
+
+```bash
+manual download via curl
+```
+
+Example:
+
+```
+assets/up-seal.png
+```
+
+---
+
+### 🌍 Access Frontend
+
+After deployment:
+
+```
+http://<ec2_public_ip>
+```
+
+---
+
+### 🧪 Test Frontend
+
+Try:
+
+```
+What programs does UPOU offer?
+```
+
+Expected:
+
+* UI loads correctly
+* Styling works
+* Logo is visible
+* Chat responds correctly
+
+---
+
+### 🔄 Updating Frontend
+
+After making changes:
+
+```bash
+cd frontend
+npm run build
+
+cd ../infrastructure/terraform
+terraform taint aws_instance.frontend
+terraform apply
+```
+
+---
+
+### ⚠️ Notes
+
+* `dist/` is NOT committed (build artifact)
+* Always rebuild before Terraform
+* S3 bucket must remain public (AWS Academy limitation)
+
+---
+
+## 🔐 Frontend Environment Variables (.env)
+
+The frontend requires an environment file to connect to the deployed backend API.
+
+---
+
+### 📁 File Location
+
+Create this file:
+
+```bash
+frontend/.env
+```
+
+---
+
+### 📝 Required Variable
+
+```env
+VITE_API_URL=https://<api_id>.execute-api.us-east-1.amazonaws.com/dev/ask
+```
+
+---
+
+### 🔍 How to Get the API URL
+
+After running `terraform apply`, check the output:
+
+```text
+api_url = "https://<api_id>.execute-api.us-east-1.amazonaws.com/dev/ask"
+```
+
+👉 Copy that value and paste it into your `.env` file.
+
+---
+
+### ⚠️ Important Notes
+
+* This file is **required for the frontend to work**
+* Do NOT commit `.env` to Git (already ignored via `.gitignore`)
+* If the API URL changes (new deployment), update this file
+
+---
+
+### 🔄 After Updating `.env`
+
+Rebuild the frontend:
+
+```bash
+cd frontend
+npm run build
+```
+
+Then redeploy:
+
+```bash
+cd ../infrastructure/terraform
+terraform apply
+```
+
+---
+
+### 🧠 Example
+
+```env
+VITE_API_URL=https://oq9izlb4ge.execute-api.us-east-1.amazonaws.com/dev/ask
+```
+
+
+## 🏁 Updated Summary
+
+* Fully automated infrastructure (Terraform)
+* Serverless AI backend (Lambda + OpenAI)
+* Knowledge-based responses (S3)
+* Ticket fallback system (DynamoDB)
+* Public API (API Gateway)
+* Frontend hosted via EC2 (nginx) with dynamic asset deployment
+* Easy cleanup with script
+
 
 ## 📤 Outputs
 

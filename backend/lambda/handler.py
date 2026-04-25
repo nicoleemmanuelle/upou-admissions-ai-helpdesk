@@ -25,6 +25,17 @@ logger = logging.getLogger("lambda_handler")
 logger.setLevel(LOG_LEVEL)
 
 
+def _response(status, body):
+    return {
+        "statusCode": status,
+        "headers": {
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Headers": "Content-Type",
+            "Access-Control-Allow-Methods": "POST,OPTIONS",
+        },
+        "body": json.dumps(body),
+    }
+
 def _create_ticket(question: str) -> dict:
     """Create a ticket record in DynamoDB and return the created item metadata.
 
@@ -47,63 +58,72 @@ def _create_ticket(question: str) -> dict:
 
 
 def _parse_event_body(event: dict) -> dict:
-    # Support direct invocation (payload is a dict) and API Gateway proxy (body is JSON string)
-    if event is None:
+    if not event:
         return {}
-    if isinstance(event.get("body"), str):
+
+    body = event.get("body")
+
+    # Case 1: API Gateway sends string
+    if isinstance(body, str):
+        if body.strip() == "":
+            return {}
         try:
-            return json.loads(event["body"])
+            return json.loads(body)
         except Exception:
             return {}
-    return event.get("body") or event
+
+    # Case 2: already parsed
+    if isinstance(body, dict):
+        return body
+
+    # Case 3: direct invocation
+    if "query" in event:
+        return event
+
+    return {}
 
 
 def lambda_handler(event, context):
     logger.debug("Event received: %s", event)
+
+    # ✅ Handle preflight (CORS)
+    if event.get("httpMethod") == "OPTIONS":
+        return _response(200, {})
+
     try:
         body = _parse_event_body(event)
         user_query = (body or {}).get("query")
 
         if not user_query or not isinstance(user_query, str) or not user_query.strip():
-            return {
-                "statusCode": 400,
-                "body": json.dumps({"error": "Missing or invalid 'query' in request body"}),
-            }
+            return _response(400, {"error": "Missing or invalid 'query' in request body"})
 
         user_query = user_query.strip()
 
         # 1) Retrieve context from S3
         context_text = get_context(user_query)
 
-        # 2) If there's no relevant context, create a ticket and return fallback
+        # 2) If no context → fallback + ticket
         if not context_text:
             ticket = _create_ticket(user_query)
             fallback = (
                 "I'm sorry — I couldn't find a relevant answer in the knowledge base. "
                 "I've created a support ticket and our admissions team will follow up."
             )
-            return {
-                "statusCode": 200,
-                "body": json.dumps({"response": fallback, "ticket": ticket}),
-            }
+            return _response(200, {"response": fallback, "ticket": ticket})
 
-        # 3) Call OpenAI with system prompt + context + user question
+        # 3) Call OpenAI
         answer = ask_openai(user_query, context_text)
 
-        # If the model declined or returned nothing, create a ticket
         if not answer or not answer.strip():
             ticket = _create_ticket(user_query)
             fallback = (
                 "I couldn't produce a confident answer. I've created a support ticket so a human can follow up."
             )
-            return {
-                "statusCode": 200,
-                "body": json.dumps({"response": fallback, "ticket": ticket}),
-            }
+            return _response(200, {"response": fallback, "ticket": ticket})
 
-        # 4) Return the model answer
-        return {"statusCode": 200, "body": json.dumps({"response": answer})}
+        # 4) Success
+        return _response(200, {"response": answer})
 
     except Exception as e:
         logger.exception("Unhandled error in lambda_handler")
-        return {"statusCode": 500, "body": json.dumps({"error": str(e)})}
+        return _response(500, {"error": str(e)})

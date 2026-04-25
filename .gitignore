@@ -1,13 +1,40 @@
+# =========================
+# Backend
+# =========================
+backend/lambda/lambda.zip
+
+
+# =========================
 # Terraform
+# =========================
 infrastructure/terraform/.terraform/*
 infrastructure/terraform/.terraform.lock.hcl
 infrastructure/terraform/*.tfstate
 infrastructure/terraform/*.tfstate.backup
 infrastructure/terraform/terraform.tfvars
 
-# Frontend / Node tooling (pnpm, Vite, etc.)
+# Extra safety (anywhere)
+*.tfvars
+*.auto.tfvars
+*.tfvars.json
+
+# =========================
+# Frontend / Node
+# =========================
 .pnpm-store/
 **/node_modules/
 **/dist/
 **/dist-ssr/
+
+# =========================
+# OS / misc
+# =========================
 .DS_Store
+Thumbs.db
+
+# =========================
+# Secrets / Keys
+# =========================
+*.pem
+*.key
+*.env

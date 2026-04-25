@@ -40,6 +40,16 @@ resource "aws_s3_object" "lambda_zip" {
   # or ACLs here if required by your org.
 }
 
+resource "aws_s3_object" "frontend_files" {
+  for_each = fileset("../../frontend/dist", "**")
+
+  bucket = aws_s3_bucket.kb_bucket.id
+  key    = "frontend/${each.value}"
+  source = "../../frontend/dist/${each.value}"
+
+  etag = filemd5("../../frontend/dist/${each.value}")
+}
+
 # Lambda Function
 resource "aws_lambda_function" "upou_ai" {
   function_name = "upou-helpdesk-lambda"
@@ -64,7 +74,7 @@ resource "aws_lambda_function" "upou_ai" {
   
   environment {
     variables = {
-      OPENAI_API_KEY     = "${var.OPENAI_API_KEY}"
+      OPENAI_API_KEY = var.openai_api_key
       S3_BUCKET          = "${aws_s3_bucket.kb_bucket.bucket}"
       DDB_TICKETS_TABLE  = "${aws_dynamodb_table.tickets.name}"
       OPENAI_MODEL       = "${var.OPENAI_MODEL}"
@@ -110,6 +120,13 @@ resource "aws_api_gateway_method" "post_method" {
   authorization = "NONE"
 }
 
+resource "aws_api_gateway_method" "options_method" {
+  rest_api_id   = aws_api_gateway_rest_api.upou_api.id
+  resource_id   = aws_api_gateway_resource.ask.id
+  http_method   = "OPTIONS"
+  authorization = "NONE"
+}
+
 # Integration with Lambda
 resource "aws_api_gateway_integration" "lambda_integration" {
   rest_api_id = aws_api_gateway_rest_api.upou_api.id
@@ -119,6 +136,48 @@ resource "aws_api_gateway_integration" "lambda_integration" {
   integration_http_method = "POST"
   type                    = "AWS_PROXY"
   uri                     = aws_lambda_function.upou_ai.invoke_arn
+}
+
+resource "aws_api_gateway_integration" "options_integration" {
+  rest_api_id = aws_api_gateway_rest_api.upou_api.id
+  resource_id = aws_api_gateway_resource.ask.id
+  http_method = aws_api_gateway_method.options_method.http_method
+
+  type = "MOCK"
+
+  request_templates = {
+    "application/json" = "{\"statusCode\": 200}"
+  }
+}
+
+resource "aws_api_gateway_method_response" "options_response" {
+  rest_api_id = aws_api_gateway_rest_api.upou_api.id
+  resource_id = aws_api_gateway_resource.ask.id
+  http_method = aws_api_gateway_method.options_method.http_method
+  status_code = "200"
+
+  response_models = {
+    "application/json" = "Empty"
+  }
+
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Origin"  = true
+    "method.response.header.Access-Control-Allow-Methods" = true
+    "method.response.header.Access-Control-Allow-Headers" = true
+  }
+}
+
+resource "aws_api_gateway_integration_response" "options_integration_response" {
+  rest_api_id = aws_api_gateway_rest_api.upou_api.id
+  resource_id = aws_api_gateway_resource.ask.id
+  http_method = aws_api_gateway_method.options_method.http_method
+  status_code = aws_api_gateway_method_response.options_response.status_code
+
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Origin"  = "'*'"
+    "method.response.header.Access-Control-Allow-Methods" = "'POST,OPTIONS'"
+    "method.response.header.Access-Control-Allow-Headers" = "'Content-Type'"
+  }
 }
 
 # Allow API Gateway to invoke Lambda
@@ -131,7 +190,12 @@ resource "aws_lambda_permission" "apigw" {
 
 # Deploy API
 resource "aws_api_gateway_deployment" "deployment" {
-  depends_on = [aws_api_gateway_integration.lambda_integration]
+  depends_on = [
+    aws_api_gateway_integration.lambda_integration,
+    aws_api_gateway_integration.options_integration,
+    aws_api_gateway_integration_response.options_integration_response,
+    aws_api_gateway_method_response.options_response
+  ]
 
   rest_api_id = aws_api_gateway_rest_api.upou_api.id
   stage_name  = "dev"
@@ -209,9 +273,74 @@ resource "aws_instance" "frontend" {
   ami           = data.aws_ami.ubuntu.id
   instance_type = "t2.micro"
 
+  key_name = "vockey"
+
   vpc_security_group_ids = [aws_security_group.ec2_sg.id]
 
   associate_public_ip_address = true
+
+  user_data = <<-EOF
+  #!/bin/bash
+
+  exec > /var/log/user-data.log 2>&1
+
+  echo "START"
+
+  sleep 30
+
+  # Enable nginx repo properly
+  amazon-linux-extras enable nginx1
+
+  # Install nginx
+  yum clean metadata
+  yum install -y nginx
+
+  # Install aws cli
+  yum install -y aws-cli
+
+  # Start nginx
+  systemctl start nginx
+  systemctl enable nginx
+
+  echo "NGINX STARTED"
+
+  mkdir -p /usr/share/nginx/html
+  rm -rf /usr/share/nginx/html/*
+
+  #aws s3 cp s3://${aws_s3_bucket.kb_bucket.bucket}/frontend/ /usr/share/nginx/html/ --recursive || echo "S3 failed"
+
+  #cd /usr/share/nginx/html
+
+  # Download main file
+  #curl -O https://${aws_s3_bucket.kb_bucket.bucket}.s3.amazonaws.com/frontend/index.html
+
+  # Download assets
+  #mkdir -p assets
+
+  #curl -o assets/index-CGm9M2iT.js https://${aws_s3_bucket.kb_bucket.bucket}.s3.amazonaws.com/frontend/assets/index-CGm9M2iT.js
+  #curl -o assets/index-BXa_bV75.css https://${aws_s3_bucket.kb_bucket.bucket}.s3.amazonaws.com/frontend/assets/index-BXa_bV75.css
+  #curl -o assets/up-seal.png https://${aws_s3_bucket.kb_bucket.bucket}.s3.amazonaws.com/frontend/assets/up-seal.png
+
+  cd /usr/share/nginx/html
+
+  curl -O https://${aws_s3_bucket.kb_bucket.bucket}.s3.amazonaws.com/frontend/index.html
+
+  mkdir -p assets
+
+  # Extract asset filenames from index.html
+  ASSETS=$(grep -o 'assets/[^"]*' index.html | sort -u)
+
+  for file in $ASSETS; do
+    echo "Downloading $file"
+    curl -f -o "$file" "https://${aws_s3_bucket.kb_bucket.bucket}.s3.amazonaws.com/frontend/$file"
+  done
+
+  curl -o assets/up-seal.png https://${aws_s3_bucket.kb_bucket.bucket}.s3.amazonaws.com/frontend/assets/up-seal.png || true
+
+  systemctl restart nginx
+
+  echo "DONE"
+  EOF
 
   tags = {
     Name        = "UPOU Frontend EC2"
@@ -222,4 +351,30 @@ resource "aws_instance" "frontend" {
 # Output public IP
 output "ec2_public_ip" {
   value = aws_instance.frontend.public_ip
+}
+
+
+resource "aws_s3_bucket_public_access_block" "kb_public" {
+  bucket = aws_s3_bucket.kb_bucket.id
+
+  block_public_acls       = false
+  block_public_policy     = false
+  ignore_public_acls      = false
+  restrict_public_buckets = false
+}
+
+resource "aws_s3_bucket_policy" "public_read" {
+  bucket = aws_s3_bucket.kb_bucket.id
+
+  depends_on = [aws_s3_bucket_public_access_block.kb_public]
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      Principal = "*"
+      Action = ["s3:GetObject"]
+      Resource = "${aws_s3_bucket.kb_bucket.arn}/*"
+    }]
+  })
 }

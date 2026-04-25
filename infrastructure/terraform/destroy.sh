@@ -1,8 +1,8 @@
 #!/bin/bash
+set -e
 
 echo "Starting cleanup..."
 
-# Get bucket name from Terraform output
 BUCKET=$(terraform output -raw bucket_name)
 
 echo "Emptying S3 bucket: $BUCKET"
