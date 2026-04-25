@@ -1,4 +1,10 @@
 # =========================
+# Backend
+# =========================
+backend/lambda/lambda.zip
+
+
+# =========================
 # Terraform
 # =========================
 infrastructure/terraform/.terraform/*
