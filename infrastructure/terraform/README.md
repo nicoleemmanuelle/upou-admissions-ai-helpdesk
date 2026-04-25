@@ -28,24 +28,39 @@ This project provisions a **serverless AI helpdesk system** using AWS:
 upou-admissions-ai-helpdesk/
 ├── backend/
 │   └── lambda/
-│       ├── handler.py
-│       ├── openai_service.py
-│       ├── s3_retriever.py
-│       ├── prompt.txt
-│       ├── package_clean.sh
-│       └── lambda.zip
+│       ├── handler.py                # Main Lambda handler
+│       ├── openai_service.py        # OpenAI integration
+│       ├── s3_retriever.py          # Retrieves context from S3
+│       ├── prompt.txt               # Prompt template for LLM
+│       ├── package_clean.sh         # Script to package Lambda
+│       └── lambda.zip               # Packaged Lambda (build artifact)
+│
+├── frontend/
+│   ├── src/                         # React/Vite source code
+│   ├── public/                      # Static public assets
+│   ├── index.html                  # Entry HTML file
+│   ├── package.json                # Dependencies and scripts
+│   ├── package-lock.json           # Locked dependency versions
+│   ├── vite.config.js              # Vite configuration
+│   ├── tailwind.config.js          # Tailwind CSS config
+│   ├── postcss.config.js           # PostCSS config
+│   └── dist/                       # Build output (NOT committed)
+│
 ├── knowledge-base/
 │   └── output_for_s3/
-│       ├── *.md
-│       └── *.csv
+│       ├── *.md                    # Knowledge base markdown files
+│       └── *.csv                   # Structured knowledge data
+│
 ├── infrastructure/
 │   └── terraform/
-│       ├── main.tf
-│       ├── lambda_role.tf
-│       ├── variables.tf
-│       ├── terraform.tfvars.example
-│       ├── destroy.sh
-│       └── versions.tf
+│       ├── main.tf                 # Main infrastructure definition
+│       ├── lambda_role.tf          # IAM role (optional)
+│       ├── variables.tf            # Input variables
+│       ├── terraform.tfvars.example# Example variables file
+│       ├── destroy.sh              # Cleanup script
+│       └── versions.tf             # Provider versions
+│
+└── .gitignore                      # Ignored files (secrets, builds)
 ```
 
 ---
@@ -299,6 +314,75 @@ terraform apply
 * S3 bucket must remain public (AWS Academy limitation)
 
 ---
+
+## 🔐 Frontend Environment Variables (.env)
+
+The frontend requires an environment file to connect to the deployed backend API.
+
+---
+
+### 📁 File Location
+
+Create this file:
+
+```bash
+frontend/.env
+```
+
+---
+
+### 📝 Required Variable
+
+```env
+VITE_API_URL=https://<api_id>.execute-api.us-east-1.amazonaws.com/dev/ask
+```
+
+---
+
+### 🔍 How to Get the API URL
+
+After running `terraform apply`, check the output:
+
+```text
+api_url = "https://<api_id>.execute-api.us-east-1.amazonaws.com/dev/ask"
+```
+
+👉 Copy that value and paste it into your `.env` file.
+
+---
+
+### ⚠️ Important Notes
+
+* This file is **required for the frontend to work**
+* Do NOT commit `.env` to Git (already ignored via `.gitignore`)
+* If the API URL changes (new deployment), update this file
+
+---
+
+### 🔄 After Updating `.env`
+
+Rebuild the frontend:
+
+```bash
+cd frontend
+npm run build
+```
+
+Then redeploy:
+
+```bash
+cd ../infrastructure/terraform
+terraform apply
+```
+
+---
+
+### 🧠 Example
+
+```env
+VITE_API_URL=https://oq9izlb4ge.execute-api.us-east-1.amazonaws.com/dev/ask
+```
+
 
 ## 🏁 Updated Summary
 
