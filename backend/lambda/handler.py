@@ -18,6 +18,7 @@ from datetime import datetime
 from s3_retriever import get_context
 from openai_service import ask_openai
 import boto3
+from create_ticket import create_ticket #import ticket from create_ticket.py
 
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 logging.basicConfig()
@@ -36,25 +37,26 @@ def _response(status, body):
         "body": json.dumps(body),
     }
 
-def _create_ticket(question: str) -> dict:
-    """Create a ticket record in DynamoDB and return the created item metadata.
+#Need to remove this
+# def _create_ticket(question: str) -> dict:
+#     """Create a ticket record in DynamoDB and return the created item metadata.
 
-    Table name is read from env var DDB_TICKETS_TABLE (default: 'tickets').
-    """
-    table_name = os.getenv("DDB_TICKETS_TABLE", "tickets")
-    dynamodb = boto3.resource("dynamodb")
-    table = dynamodb.Table(table_name)
+#     Table name is read from env var DDB_TICKETS_TABLE (default: 'tickets').
+#     """
+#     table_name = os.getenv("DDB_TICKETS_TABLE", "tickets")
+#     dynamodb = boto3.resource("dynamodb")
+#     table = dynamodb.Table(table_name)
 
-    item = {
-        "id": str(uuid.uuid4()),
-        "question": question,
-        "timestamp": datetime.utcnow().isoformat() + "Z",
-        "status": "pending",
-    }
+#     item = {
+#         "id": str(uuid.uuid4()),
+#         "question": question,
+#         "timestamp": datetime.utcnow().isoformat() + "Z",
+#         "status": "pending",
+#     }
 
-    table.put_item(Item=item)
-    logger.info("Created ticket %s in table %s", item["id"], table_name)
-    return item
+#     table.put_item(Item=item)
+#     logger.info("Created ticket %s in table %s", item["id"], table_name)
+#     return item
 
 
 def _parse_event_body(event: dict) -> dict:
@@ -104,7 +106,7 @@ def lambda_handler(event, context):
 
         # 2) If no context → fallback + ticket
         if not context_text:
-            ticket = _create_ticket(user_query)
+            ticket = create_ticket(user_query) #Changed the name _create_ticket to create_ticket
             fallback = (
                 "I'm sorry — I couldn't find a relevant answer in the knowledge base. "
                 "I've created a support ticket and our admissions team will follow up."
@@ -115,7 +117,7 @@ def lambda_handler(event, context):
         answer = ask_openai(user_query, context_text)
 
         if not answer or not answer.strip():
-            ticket = _create_ticket(user_query)
+            ticket = create_ticket(user_query) #Changed the name _create_ticket to create_ticket
             fallback = (
                 "I couldn't produce a confident answer. I've created a support ticket so a human can follow up."
             )
