@@ -7,7 +7,7 @@ resource "random_id" "suffix" {
 }
 
 resource "aws_s3_bucket" "kb_bucket" {
-  bucket = "upou-kb-${random_id.suffix.hex}"
+  bucket = "upou-admissions-kb"
 
   tags = {
     Name        = "UPOU KB Bucket"
@@ -343,7 +343,7 @@ resource "aws_instance" "frontend" {
   EOF
 
   tags = {
-    Name        = "UPOU Frontend EC2"
+    Name        = "IS215-Project"
     Environment = "dev"
   }
 }
