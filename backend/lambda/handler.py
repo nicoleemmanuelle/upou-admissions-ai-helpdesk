@@ -107,17 +107,18 @@ def lambda_handler(event, context):
             ticket = _create_ticket(user_query)
             fallback = (
                 "I'm sorry — I couldn't find a relevant answer in the knowledge base. "
-                "I've created a support ticket and our admissions team will follow up."
+                "I've created a support ticket so our admissions team can follow up."
             )
             return _response(200, {"response": fallback, "ticket": ticket})
 
         # 3) Call OpenAI
         answer = ask_openai(user_query, context_text)
 
-        if not answer or not answer.strip():
+        if (not answer) or (not answer.strip()) or (answer.strip().lower() in ["i don't know", "i do not know", "i'm not sure", "i don't know based on the provided documents."]):
             ticket = _create_ticket(user_query)
             fallback = (
-                "I couldn't produce a confident answer. I've created a support ticket so a human can follow up."
+                "I couldn't produce a confident answer. I've created a support ticket so our admissions team can follow up.\n"
+                "Ticket ID: " + ticket["id"]
             )
             return _response(200, {"response": fallback, "ticket": ticket})
 
