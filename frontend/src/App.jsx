@@ -18,6 +18,14 @@ function App() {
   const [endDate, setEndDate] = useState("");
   const [activeFilter, setActiveFilter] = useState(null);
 
+  // Write the API base URL to localStorage so ticket.html can read it
+  useEffect(() => {
+    const apiUrl = import.meta.env.VITE_API_URL;
+    if (apiUrl) {
+      localStorage.setItem("UPOU_API_BASE", apiUrl.replace(/\/[^/]+$/, ""));
+    }
+  }, []);
+
   // Auto-save history onto localStorage whenever messages change
   useEffect(() => {
     localStorage.setItem("chat_history_dates", JSON.stringify(messages));

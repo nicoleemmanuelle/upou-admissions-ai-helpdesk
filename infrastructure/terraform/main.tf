@@ -188,13 +188,127 @@ resource "aws_lambda_permission" "apigw" {
   principal     = "apigateway.amazonaws.com"
 }
 
+# Lambda for ticket lookup
+resource "aws_lambda_function" "ticket_lookup" {
+  function_name = "upou-ticket-lookup"
+  role          = element(concat(aws_iam_role.lambda_role.*.arn, [var.lambda_role]), 0)
+  handler       = "ticket_lookup.lambda_handler"
+  runtime       = "python3.11"
+  timeout       = 10
+  memory_size   = 128
+
+  s3_bucket  = aws_s3_bucket.kb_bucket.bucket
+  s3_key     = aws_s3_object.lambda_zip.key
+  depends_on = [aws_s3_object.lambda_zip]
+
+  environment {
+    variables = {
+      DDB_TICKETS_TABLE = aws_dynamodb_table.tickets.name
+      LOG_LEVEL         = "INFO"
+    }
+  }
+}
+
+resource "aws_lambda_permission" "apigw_ticket" {
+  statement_id  = "AllowAPIGatewayInvokeTicket"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.ticket_lookup.function_name
+  principal     = "apigateway.amazonaws.com"
+}
+
+# Resource: /id
+resource "aws_api_gateway_resource" "id" {
+  rest_api_id = aws_api_gateway_rest_api.upou_api.id
+  parent_id   = aws_api_gateway_rest_api.upou_api.root_resource_id
+  path_part   = "id"
+}
+
+# Resource: /id/{ticket_id}
+resource "aws_api_gateway_resource" "ticket_id" {
+  rest_api_id = aws_api_gateway_rest_api.upou_api.id
+  parent_id   = aws_api_gateway_resource.id.id
+  path_part   = "{ticket_id}"
+}
+
+# Method: GET /id/{ticket_id}
+resource "aws_api_gateway_method" "get_ticket" {
+  rest_api_id   = aws_api_gateway_rest_api.upou_api.id
+  resource_id   = aws_api_gateway_resource.ticket_id.id
+  http_method   = "GET"
+  authorization = "NONE"
+}
+
+# Method: OPTIONS /id/{ticket_id} (CORS preflight)
+resource "aws_api_gateway_method" "options_ticket" {
+  rest_api_id   = aws_api_gateway_rest_api.upou_api.id
+  resource_id   = aws_api_gateway_resource.ticket_id.id
+  http_method   = "OPTIONS"
+  authorization = "NONE"
+}
+
+# Integration: GET → ticket_lookup Lambda
+resource "aws_api_gateway_integration" "get_ticket_integration" {
+  rest_api_id             = aws_api_gateway_rest_api.upou_api.id
+  resource_id             = aws_api_gateway_resource.ticket_id.id
+  http_method             = aws_api_gateway_method.get_ticket.http_method
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  uri                     = aws_lambda_function.ticket_lookup.invoke_arn
+}
+
+# Integration: OPTIONS → MOCK
+resource "aws_api_gateway_integration" "options_ticket_integration" {
+  rest_api_id = aws_api_gateway_rest_api.upou_api.id
+  resource_id = aws_api_gateway_resource.ticket_id.id
+  http_method = aws_api_gateway_method.options_ticket.http_method
+  type        = "MOCK"
+
+  request_templates = {
+    "application/json" = "{\"statusCode\": 200}"
+  }
+}
+
+resource "aws_api_gateway_method_response" "options_ticket_response" {
+  rest_api_id = aws_api_gateway_rest_api.upou_api.id
+  resource_id = aws_api_gateway_resource.ticket_id.id
+  http_method = aws_api_gateway_method.options_ticket.http_method
+  status_code = "200"
+
+  response_models = {
+    "application/json" = "Empty"
+  }
+
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Origin"  = true
+    "method.response.header.Access-Control-Allow-Methods" = true
+    "method.response.header.Access-Control-Allow-Headers" = true
+  }
+}
+
+resource "aws_api_gateway_integration_response" "options_ticket_integration_response" {
+  rest_api_id = aws_api_gateway_rest_api.upou_api.id
+  resource_id = aws_api_gateway_resource.ticket_id.id
+  http_method = aws_api_gateway_method.options_ticket.http_method
+  status_code = aws_api_gateway_method_response.options_ticket_response.status_code
+
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Origin"  = "'*'"
+    "method.response.header.Access-Control-Allow-Methods" = "'GET,OPTIONS'"
+    "method.response.header.Access-Control-Allow-Headers" = "'Content-Type'"
+  }
+}
+
 # Deploy API
 resource "aws_api_gateway_deployment" "deployment" {
   depends_on = [
     aws_api_gateway_integration.lambda_integration,
     aws_api_gateway_integration.options_integration,
     aws_api_gateway_integration_response.options_integration_response,
-    aws_api_gateway_method_response.options_response
+    aws_api_gateway_method_response.options_response,
+    aws_api_gateway_integration.get_ticket_integration,
+    aws_api_gateway_integration.options_ticket_integration,
+    aws_api_gateway_integration_response.options_ticket_integration_response,
+    aws_api_gateway_method_response.options_ticket_response,
   ]
 
   rest_api_id = aws_api_gateway_rest_api.upou_api.id
@@ -336,6 +450,8 @@ resource "aws_instance" "frontend" {
   done
 
   curl -o assets/up-seal.png https://${aws_s3_bucket.kb_bucket.bucket}.s3.amazonaws.com/frontend/assets/up-seal.png || true
+
+  curl -o ticket.html https://${aws_s3_bucket.kb_bucket.bucket}.s3.amazonaws.com/frontend/ticket.html || true
 
   systemctl restart nginx
 

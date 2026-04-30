@@ -1,0 +1,468 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Support Ticket Tracker — UPOU Admissions Helpdesk</title>
+    <style>
+      :root {
+        --maroon: #7b1113;
+        --gold: #f4b400;
+        --ink: #0b1220;
+      }
+
+      *, *::before, *::after { box-sizing: border-box; }
+
+      body {
+        font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        margin: 0;
+        min-height: 100vh;
+        color: var(--ink);
+        background: #f5f5f8;
+        background-image:
+          radial-gradient(ellipse 80% 50% at -10% -10%, rgba(244,180,0,.15) 0%, transparent 70%),
+          radial-gradient(ellipse 70% 45% at 110% -5%, rgba(123,17,19,.12) 0%, transparent 70%);
+        padding: 2.5rem 1rem 4rem;
+      }
+
+      .container { max-width: 680px; margin: 0 auto; }
+
+      /* ── Back link ── */
+      .back-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: .8125rem;
+        color: rgba(0,0,0,.45);
+        text-decoration: none;
+        margin-bottom: 1.25rem;
+        transition: color .15s;
+      }
+      .back-link:hover { color: var(--maroon); }
+
+      /* ── Header ── */
+      .page-header {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        margin-bottom: 1.75rem;
+      }
+      .page-header img {
+        width: 44px; height: 44px;
+        border-radius: 50%;
+        border: 1px solid rgba(0,0,0,.1);
+        background: white;
+        object-fit: cover;
+        box-shadow: 0 1px 4px rgba(0,0,0,.1);
+        flex-shrink: 0;
+      }
+      .page-header h1 {
+        margin: 0;
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: var(--ink);
+        line-height: 1.25;
+      }
+      .page-header p {
+        margin: 3px 0 0;
+        font-size: .8rem;
+        color: rgba(0,0,0,.5);
+      }
+
+      /* ── Card ── */
+      .card {
+        background: rgba(255,255,255,.72);
+        border: 1px solid rgba(0,0,0,.08);
+        border-radius: 1.5rem;
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+        box-shadow: 0 20px 60px -25px rgba(11,18,32,.28);
+        overflow: hidden;
+      }
+      .card-header {
+        padding: 1.1rem 1.5rem;
+        border-bottom: 1px solid rgba(0,0,0,.06);
+      }
+      .card-header h2 {
+        margin: 0;
+        font-size: .9375rem;
+        font-weight: 700;
+        color: var(--ink);
+      }
+      .card-body { padding: 1.5rem; }
+
+      /* ── Search bar ── */
+      .search-row { display: flex; gap: .625rem; }
+      .search-row input {
+        flex: 1;
+        min-width: 0;
+        padding: .625rem 1rem;
+        border: 1px solid rgba(0,0,0,.12);
+        border-radius: 9999px;
+        font-size: .875rem;
+        color: var(--ink);
+        background: white;
+        outline: none;
+        transition: border-color .15s, box-shadow .15s;
+      }
+      .search-row input::placeholder { color: rgba(0,0,0,.38); }
+      .search-row input:focus {
+        border-color: var(--gold);
+        box-shadow: 0 0 0 3px rgba(244,180,0,.22);
+      }
+      .btn-lookup {
+        padding: .625rem 1.35rem;
+        background: var(--maroon);
+        color: white;
+        border: none;
+        border-radius: 9999px;
+        font-size: .8125rem;
+        font-weight: 600;
+        cursor: pointer;
+        white-space: nowrap;
+        box-shadow: 0 8px 22px -10px rgba(123,17,19,.55);
+        transition: filter .15s, box-shadow .15s;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .btn-lookup:hover { filter: brightness(1.1); }
+      .btn-lookup:disabled { opacity: .6; cursor: not-allowed; filter: none; }
+      .btn-lookup svg { transition: transform .15s; }
+      .btn-lookup:not(:disabled):hover svg { transform: translateX(2px); }
+
+      /* ── Result area ── */
+      #result { margin-top: 1.375rem; }
+
+      .loading {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        color: rgba(0,0,0,.45);
+        font-size: .875rem;
+        padding: 1.5rem 0;
+      }
+      .spinner {
+        width: 14px; height: 14px;
+        border: 2px solid rgba(0,0,0,.12);
+        border-top-color: var(--maroon);
+        border-radius: 50%;
+        animation: spin .7s linear infinite;
+        flex-shrink: 0;
+      }
+      @keyframes spin { to { transform: rotate(360deg); } }
+
+      .error-box {
+        background: #fff1f1;
+        border: 1px solid #fecaca;
+        color: #991b1b;
+        border-radius: .875rem;
+        padding: .875rem 1.1rem;
+        font-size: .875rem;
+        font-weight: 500;
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+      }
+      .error-box svg { flex-shrink: 0; margin-top: 1px; }
+
+      /* ── Ticket detail card ── */
+      .ticket-card {
+        border: 1px solid rgba(0,0,0,.09);
+        border-radius: 1rem;
+        overflow: hidden;
+        background: white;
+      }
+
+      .ticket-card-header {
+        background: var(--maroon);
+        color: white;
+        padding: 1rem 1.25rem;
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 1rem;
+        flex-wrap: wrap;
+      }
+      .ticket-id-eyebrow {
+        font-size: .68rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .07em;
+        opacity: .65;
+        margin-bottom: 3px;
+      }
+      .ticket-id-value {
+        font-size: .9375rem;
+        font-weight: 700;
+        letter-spacing: .01em;
+        word-break: break-all;
+      }
+
+      /* Status badge (shown in header area, styled for maroon bg) */
+      .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        font-size: .7rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: .06em;
+        padding: .3rem .8rem;
+        border-radius: 9999px;
+        white-space: nowrap;
+        flex-shrink: 0;
+        margin-top: 2px;
+      }
+      .badge-open     { background: rgba(244,180,0,.2);  color: #ffe47a; border: 1px solid rgba(244,180,0,.45); }
+      .badge-resolved { background: rgba(134,239,172,.2); color: #86efac; border: 1px solid rgba(134,239,172,.45); }
+      .badge-pending  { background: rgba(147,197,253,.2); color: #93c5fd; border: 1px solid rgba(147,197,253,.45); }
+      .badge-closed   { background: rgba(255,255,255,.1); color: rgba(255,255,255,.7); border: 1px solid rgba(255,255,255,.25); }
+      .badge-unknown  { background: rgba(255,255,255,.1); color: rgba(255,255,255,.7); border: 1px solid rgba(255,255,255,.25); }
+
+      /* Fields */
+      .ticket-fields {
+        padding: 1.125rem 1.25rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+      }
+      .field-item {
+        padding: .875rem 0;
+        border-bottom: 1px solid rgba(0,0,0,.055);
+      }
+      .field-item:last-child { border-bottom: none; padding-bottom: 0; }
+      .field-item:first-child { padding-top: 0; }
+
+      .field-label {
+        font-size: .68rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: .08em;
+        color: rgba(0,0,0,.38);
+        margin-bottom: 5px;
+      }
+      .field-value {
+        font-size: .9rem;
+        color: var(--ink);
+        line-height: 1.6;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+      .field-value.empty { color: rgba(0,0,0,.35); font-style: italic; }
+      .field-value.timestamp { font-size: .8125rem; color: rgba(0,0,0,.5); }
+
+      /* Status row inside fields (for color context on white bg) */
+      .status-row {
+        display: flex;
+        align-items: center;
+        gap: .625rem;
+      }
+      .status-dot {
+        width: 8px; height: 8px;
+        border-radius: 50%;
+        flex-shrink: 0;
+      }
+      .dot-open     { background: #d97706; }
+      .dot-resolved { background: #16a34a; }
+      .dot-pending  { background: #2563eb; }
+      .dot-closed   { background: #6b7280; }
+      .dot-unknown  { background: #9ca3af; }
+
+      .status-text-open     { color: #92400e; font-weight: 600; }
+      .status-text-resolved { color: #14532d; font-weight: 600; }
+      .status-text-pending  { color: #1e3a8a; font-weight: 600; }
+      .status-text-closed   { color: #374151; font-weight: 600; }
+      .status-text-unknown  { color: rgba(0,0,0,.5); }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+
+      <a class="back-link" href="/">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="m12 5-7 7 7 7"/></svg>
+        Back to Helpdesk
+      </a>
+
+      <header class="page-header">
+        <img src="/assets/up-seal.png" alt="University of the Philippines seal" />
+        <div>
+          <h1>UPOU Admissions Helpdesk</h1>
+          <p>Support Ticket Tracker</p>
+        </div>
+      </header>
+
+      <div class="card">
+        <div class="card-header">
+          <h2>Look up a Support Ticket</h2>
+        </div>
+        <div class="card-body">
+          <div class="search-row">
+            <input
+              id="ticket-input"
+              type="text"
+              placeholder="Enter your ticket ID…"
+              autocomplete="off"
+              spellcheck="false"
+              aria-label="Ticket ID"
+            />
+            <button id="btn-lookup" class="btn-lookup" aria-label="Look up ticket">
+              Look up
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h12"/><path d="m13 6 6 6-6 6"/></svg>
+            </button>
+          </div>
+          <div id="result" aria-live="polite"></div>
+        </div>
+      </div>
+
+    </div>
+
+    <script>
+      /* API base — written to localStorage by App.jsx on load */
+      const API_BASE = localStorage.getItem('UPOU_API_BASE');
+
+      const $input  = document.getElementById('ticket-input');
+      const $btn    = document.getElementById('btn-lookup');
+      const $result = document.getElementById('result');
+
+      /* Pre-fill from ?id= query param and auto-lookup */
+      const params  = new URLSearchParams(location.search);
+      const idParam = params.get('id');
+      if (idParam) {
+        $input.value = idParam;
+        window.addEventListener('load', () => lookup(idParam));
+      }
+
+      $btn.addEventListener('click', () => lookup($input.value.trim()));
+      $input.addEventListener('keydown', e => {
+        if (e.key === 'Enter') lookup($input.value.trim());
+      });
+
+      /* ── Helpers ── */
+      function esc(s) {
+        return String(s == null ? '' : s)
+          .replaceAll('&', '&amp;')
+          .replaceAll('<', '&lt;')
+          .replaceAll('>', '&gt;')
+          .replaceAll('"', '&quot;')
+          .replaceAll("'", '&#39;');
+      }
+
+      function statusKey(s) {
+        if (!s) return 'unknown';
+        const v = String(s).toLowerCase().trim();
+        if (v === 'open')     return 'open';
+        if (v === 'resolved') return 'resolved';
+        if (v === 'pending')  return 'pending';
+        if (v === 'closed')   return 'closed';
+        return 'unknown';
+      }
+
+      function formatTimestamp(ts) {
+        if (!ts) return null;
+        const d = new Date(ts);
+        if (isNaN(d.getTime())) return esc(ts);
+        return d.toLocaleString('en-PH', {
+          year: 'numeric', month: 'long', day: 'numeric',
+          hour: '2-digit', minute: '2-digit', timeZoneName: 'short'
+        });
+      }
+
+      /* ── Render states ── */
+      function showLoading() {
+        $result.innerHTML = '<div class="loading"><div class="spinner"></div> Looking up ticket…</div>';
+      }
+
+      function showError(msg) {
+        $result.innerHTML = `
+          <div class="error-box" role="alert">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            ${esc(msg)}
+          </div>`;
+      }
+
+      function showTicket(t) {
+        const key  = statusKey(t.status);
+        const ts   = formatTimestamp(t.timestamp);
+        const hasAnswer = t.answer && String(t.answer).trim().length > 0;
+
+        $result.innerHTML = `
+          <div class="ticket-card">
+            <div class="ticket-card-header">
+              <div class="ticket-id-group">
+                <div class="ticket-id-eyebrow">Ticket ID</div>
+                <div class="ticket-id-value">${esc(t.id || '—')}</div>
+              </div>
+              <span class="status-badge badge-${key}" aria-label="Status: ${esc(t.status || 'Unknown')}">
+                ${esc(t.status || 'Unknown')}
+              </span>
+            </div>
+
+            <div class="ticket-fields">
+
+              <div class="field-item">
+                <div class="field-label">Status</div>
+                <div class="field-value">
+                  <div class="status-row">
+                    <div class="status-dot dot-${key}" aria-hidden="true"></div>
+                    <span class="status-text-${key}">${esc(t.status || 'Unknown')}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="field-item">
+                <div class="field-label">Question</div>
+                <div class="field-value${t.question ? '' : ' empty'}">${t.question ? esc(t.question) : 'No question recorded'}</div>
+              </div>
+
+              <div class="field-item">
+                <div class="field-label">Answer</div>
+                <div class="field-value${hasAnswer ? '' : ' empty'}">${hasAnswer ? esc(t.answer) : 'No answer yet — our team will respond soon.'}</div>
+              </div>
+
+              <div class="field-item">
+                <div class="field-label">Submitted</div>
+                <div class="field-value timestamp${ts ? '' : ' empty'}">${ts || 'No timestamp recorded'}</div>
+              </div>
+
+            </div>
+          </div>`;
+      }
+
+      /* ── Main lookup ── */
+      async function lookup(id) {
+        if (!id) { showError('Please enter a ticket ID.'); return; }
+        if (!API_BASE) { showError('API not configured. Please visit the Helpdesk home page first, then try again.'); return; }
+        showLoading();
+        $btn.disabled = true;
+
+        try {
+          const url = `${API_BASE}/id/${encodeURIComponent(id)}`;
+          const res = await fetch(url, { method: 'GET', mode: 'cors' });
+
+          if (!res.ok) {
+            const txt = await res.text().catch(() => '');
+            const msg = res.status === 404
+              ? `Ticket "${id}" was not found. Please check your ticket ID and try again.`
+              : `Request failed (${res.status} ${res.statusText})${txt ? ': ' + txt : ''}.`;
+            return showError(msg);
+          }
+
+          const data = await res.json();
+          /* Unwrap Lambda proxy response if needed */
+          const payload = (data && typeof data === 'object' && data.statusCode && data.body)
+            ? JSON.parse(data.body)
+            : data;
+
+          showTicket(payload);
+        } catch (err) {
+          console.error(err);
+          showError('Network or parsing error. Check the browser console for details.');
+        } finally {
+          $btn.disabled = false;
+        }
+      }
+    </script>
+  </body>
+</html>
