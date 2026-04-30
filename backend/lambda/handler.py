@@ -116,7 +116,23 @@ def lambda_handler(event, context):
         # 3) Call OpenAI
         answer = ask_openai(user_query, context_text)
 
-        if (not answer) or (not answer.strip()) or (answer.strip().lower() in ["i don't know", "i do not know", "i'm not sure", "i don't know based on the provided documents."]):
+        answer_text = (answer or "").strip()
+        answer_lower = answer_text.lower().replace("’", "'")
+
+        unknown_phrases = [
+            "i don't know",
+            "i do not know",
+            "i'm not sure",
+            "i am not sure",
+            "i don't know based on the provided documents",
+            "i do not know based on the provided documents",
+            "couldn't find a relevant answer",
+            "couldn't produce a confident answer",
+            "not enough information",
+            "cannot answer based on the provided",
+        ]
+
+        if (not answer_text) or any(phrase in answer_lower for phrase in unknown_phrases):
             ticket = _create_ticket(user_query)
             fallback = (
                 "I'm sorry — I couldn't produce a confident answer. "
