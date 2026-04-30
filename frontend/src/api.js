@@ -12,5 +12,5 @@ export async function sendQuery(query) {
   }
 
   const data = await res.json();
-  return data.response;
+  return { response: data.response, ticket: data.ticket ?? null };
 }
