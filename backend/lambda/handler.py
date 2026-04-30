@@ -48,6 +48,7 @@ def _create_ticket(question: str) -> dict:
     item = {
         "id": str(uuid.uuid4()),
         "question": question,
+        "answer": None,
         "timestamp": datetime.utcnow().isoformat() + "Z",
         "status": "pending",
     }

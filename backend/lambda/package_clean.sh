@@ -13,7 +13,7 @@ echo "Creating clean lambda.zip at $TARGET_ZIP (no dependencies)"
 rm -f "$TARGET_ZIP"
 
 pushd "$SCRIPT_DIR" >/dev/null
-  zip -r9 "$TARGET_ZIP" handler.py openai_service.py s3_retriever.py prompt.txt >/dev/null
+  zip -r9 "$TARGET_ZIP" handler.py openai_service.py s3_retriever.py ticket_lookup.py prompt.txt >/dev/null
 popd >/dev/null
 
 echo "Clean lambda.zip created at $TARGET_ZIP"
