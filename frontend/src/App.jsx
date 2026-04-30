@@ -53,11 +53,11 @@ function App() {
 
     setIsSending(true);
     try {
-      const response = await sendQuery(trimmed);
+      const { response, ticket } = await sendQuery(trimmed);
       // Give bot message a timestamp too
       setMessages((prev) => [
         ...prev,
-        { role: "bot", text: response, timestamp: new Date().toISOString() },
+        { role: "bot", text: response, ticket: ticket ?? null, timestamp: new Date().toISOString() },
       ]);
       setInput("");
     } catch (e) {
@@ -250,6 +250,17 @@ function App() {
                             {isUser ? "You" : "Helpdesk"}
                           </div>
                           <div className="whitespace-pre-wrap">{msg.text}</div>
+                          {!isUser && msg.ticket?.id && (
+                            <a
+                              href={`/ticket.html?id=${msg.ticket.id}`}
+                              className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-upou-maroon hover:underline"
+                            >
+                              View your support ticket
+                              <svg aria-hidden="true" viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M5 12h12"/><path d="m13 6 6 6-6 6"/>
+                              </svg>
+                            </a>
+                          )}
                         </div>
                       </div>
                     );
