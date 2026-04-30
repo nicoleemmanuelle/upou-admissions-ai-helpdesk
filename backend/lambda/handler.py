@@ -18,6 +18,7 @@ from datetime import datetime
 from s3_retriever import get_context
 from openai_service import ask_openai
 import boto3
+from ticketing_services import _create_ticket
 
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 logging.basicConfig()
@@ -36,26 +37,26 @@ def _response(status, body):
         "body": json.dumps(body),
     }
 
-def _create_ticket(question: str) -> dict:
-    """Create a ticket record in DynamoDB and return the created item metadata.
+# def _create_ticket(question: str) -> dict:
+#     """Create a ticket record in DynamoDB and return the created item metadata.
 
-    Table name is read from env var DDB_TICKETS_TABLE (default: 'tickets').
-    """
-    table_name = os.getenv("DDB_TICKETS_TABLE", "tickets")
-    dynamodb = boto3.resource("dynamodb")
-    table = dynamodb.Table(table_name)
+#     Table name is read from env var DDB_TICKETS_TABLE (default: 'tickets').
+#     """
+#     table_name = os.getenv("DDB_TICKETS_TABLE", "tickets")
+#     dynamodb = boto3.resource("dynamodb")
+#     table = dynamodb.Table(table_name)
 
-    item = {
-        "id": str(uuid.uuid4()),
-        "question": question,
-        "answer": None,
-        "timestamp": datetime.utcnow().isoformat() + "Z",
-        "status": "pending",
-    }
+#     item = {
+#         "id": str(uuid.uuid4()),
+#         "question": question,
+#         "answer": None,
+#         "timestamp": datetime.utcnow().isoformat() + "Z",
+#         "status": "pending",
+#     }
 
-    table.put_item(Item=item)
-    logger.info("Created ticket %s in table %s", item["id"], table_name)
-    return item
+#     table.put_item(Item=item)
+#     logger.info("Created ticket %s in table %s", item["id"], table_name)
+#     return item
 
 
 def _parse_event_body(event: dict) -> dict:
