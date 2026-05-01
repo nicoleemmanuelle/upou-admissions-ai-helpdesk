@@ -10,7 +10,7 @@
 * Member 6 – Frontend Developer (Elvin / Rosel)
 * Member 7 – Frontend–Backend Integrator (John Rey)
 * Member 8 – Cloud Engineer (Terraform) (Jv)
-* Member 9 – Ticketing & QA Engineer (John Rey)
+* Member 9 – Ticketing & QA Engineer (Adrian)
 
 ---
 
