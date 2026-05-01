@@ -7,7 +7,7 @@ resource "random_id" "suffix" {
 }
 
 resource "aws_s3_bucket" "kb_bucket" {
-  bucket = "upou-admissions-kb"
+  bucket = "upou-admissions-kb-1"
 
   tags = {
     Name        = "UPOU KB Bucket"
@@ -16,7 +16,7 @@ resource "aws_s3_bucket" "kb_bucket" {
 }
 
 resource "aws_s3_object" "kb_files" {
-  for_each = fileset("../../knowledge-base/output_for_s3", "*.{csv,md}")
+  for_each = fileset("../../knowledge-base/output_for_s3", "*.{csv,md,json}")
 
   bucket = aws_s3_bucket.kb_bucket.id
   key    = each.value
