@@ -55,7 +55,7 @@ def _create_ticket(question: str) -> dict:
     item = {
         "id": ticket_id,  # keep existing schema
         "question": question,
-        "answer": "",
+        "answer": None,
         "timestamp": timestamp,
         "status": "pending",
         "category": categorize(question),
