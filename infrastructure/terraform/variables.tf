@@ -21,3 +21,8 @@ variable "create_role" {
 	type        = bool
 	default     = true
 }
+
+variable "notification_email" {
+  description = "Email address that receives SNS notifications when a new helpdesk ticket is created"
+  type        = string
+}
