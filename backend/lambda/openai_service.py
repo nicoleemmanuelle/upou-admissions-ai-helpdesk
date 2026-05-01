@@ -50,7 +50,7 @@ def ask_openai(user_query: str, context: str, model: Optional[str] = None) -> st
     payload = json.dumps({
         "model": model,
         "messages": messages,
-        "max_tokens": 800,
+        "max_tokens": 1500,
         "temperature": 0.0,
     }).encode("utf-8")
 
