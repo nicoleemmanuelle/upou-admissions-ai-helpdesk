@@ -25,7 +25,7 @@ def _list_bucket_objects(s3_client, bucket: str) -> List[dict]:
 
 
 def get_context(query: str, max_chars: int = 4000) -> str:
-    bucket = os.getenv("S3_BUCKET", "upou-admissions-kb")
+    bucket = os.getenv("S3_BUCKET", "upou-admissions-kb-1")
     s3 = boto3.client("s3")
 
     if not query:
