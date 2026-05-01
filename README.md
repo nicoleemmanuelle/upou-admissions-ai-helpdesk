@@ -67,6 +67,7 @@ EC2 Instance (Nginx + React SPA + static ticket.html)
 | S3 | Knowledge base document storage |
 | DynamoDB | Support ticket storage |
 | SNS | Email notifications to admissions team |
+| Textract | Extract text from scanned documents, PDFs, and images |
 
 ---
 
