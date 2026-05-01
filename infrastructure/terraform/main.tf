@@ -7,7 +7,7 @@ resource "random_id" "suffix" {
 }
 
 resource "aws_s3_bucket" "kb_bucket" {
-  bucket = "upou-admissions-kb"
+  bucket = "upou-admissions-kb-${random_id.suffix.hex}"
 
   tags = {
     Name        = "UPOU KB Bucket"
@@ -74,11 +74,12 @@ resource "aws_lambda_function" "upou_ai" {
   
   environment {
     variables = {
-      OPENAI_API_KEY = var.openai_api_key
-      S3_BUCKET          = "${aws_s3_bucket.kb_bucket.bucket}"
-      DDB_TICKETS_TABLE  = "${aws_dynamodb_table.tickets.name}"
-      OPENAI_MODEL       = "${var.OPENAI_MODEL}"
-      LOG_LEVEL          = "INFO"
+      OPENAI_API_KEY    = var.openai_api_key
+      S3_BUCKET         = aws_s3_bucket.kb_bucket.bucket
+      DDB_TICKETS_TABLE = aws_dynamodb_table.tickets.name
+      OPENAI_MODEL      = var.OPENAI_MODEL
+      SNS_TOPIC_ARN     = aws_sns_topic.helpdesk_notifications.arn
+      LOG_LEVEL         = "INFO"
     }
   }
 }
@@ -98,6 +99,17 @@ resource "aws_dynamodb_table" "tickets" {
     Name        = "UPOU Ticket Table"
     Environment = "dev"
   }
+}
+
+# SNS Topic for new ticket notifications
+resource "aws_sns_topic" "helpdesk_notifications" {
+  name = "upou-helpdesk-notifications"
+}
+
+resource "aws_sns_topic_subscription" "email_notification" {
+  topic_arn = aws_sns_topic.helpdesk_notifications.arn
+  protocol  = "email"
+  endpoint  = var.notification_email
 }
 
 # API Gateway REST API
@@ -329,6 +341,10 @@ output "lambda_name" {
 
 output "dynamodb_table_name" {
   value = aws_dynamodb_table.tickets.name
+}
+
+output "sns_topic_arn" {
+  value = aws_sns_topic.helpdesk_notifications.arn
 }
 
 # Get a recent Ubuntu AMI (safe default)

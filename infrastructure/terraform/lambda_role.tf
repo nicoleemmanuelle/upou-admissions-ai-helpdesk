@@ -41,3 +41,18 @@ resource "aws_iam_role_policy_attachment" "ses_send" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonSESFullAccess"
 }
 */
+
+resource "aws_iam_role_policy" "sns_publish" {
+  count = var.create_role ? 1 : 0
+  name  = "sns-publish"
+  role  = aws_iam_role.lambda_role[0].id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect   = "Allow"
+      Action   = "sns:Publish"
+      Resource = aws_sns_topic.helpdesk_notifications.arn
+    }]
+  })
+}
