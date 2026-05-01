@@ -364,11 +364,19 @@ data "aws_ami" "ubuntu" {
   }
 }
 
-# Security group (HTTP + SSH)
+# Security group (HTTPS + HTTP + SSH)
 resource "aws_security_group" "ec2_sg" {
   name        = "upou-ec2-sg-${random_id.suffix.hex}"
   description = "Allow HTTP and SSH"
 
+  ingress {
+    description = "HTTPS"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  
   ingress {
     description = "HTTP"
     from_port   = 80
