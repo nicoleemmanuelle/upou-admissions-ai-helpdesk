@@ -385,6 +385,8 @@
       function showTicket(t) {
         const key  = statusKey(t.status);
         const ts   = formatTimestamp(t.timestamp);
+        const category = t.category && String(t.category).trim().length > 0 ? String(t.category).trim() : 'general';
+        const priority = t.priority && String(t.priority).trim().length > 0 ? String(t.priority).trim() : 'LOW';
         const hasAnswer = t.answer && String(t.answer).trim().length > 0;
 
         $result.innerHTML = `
@@ -424,6 +426,16 @@
               <div class="field-item">
                 <div class="field-label">Submitted</div>
                 <div class="field-value timestamp${ts ? '' : ' empty'}">${ts || 'No timestamp recorded'}</div>
+              </div>
+
+              <div class="field-item">
+                <div class="field-label">Category</div>
+                <div class="field-value">${esc(category)}</div>
+              </div>
+
+              <div class="field-item">
+                <div class="field-label">Priority</div>
+                <div class="field-value">${esc(priority)}</div>
               </div>
 
             </div>
