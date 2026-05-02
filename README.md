@@ -421,12 +421,13 @@ The destroy script empties the S3 knowledge base bucket before running `terrafor
 
 ## Team
 
-| Role | Member(s) |
-|---|---|
-| Project Lead / Integration | Nicole, Christian |
-| Knowledge Base Engineering | Egie, Christian |
-| Backend Development | Nicole, John Rey, Jayvee, Kim |
-| AI / RAG Engineering | Nicole, John Rey |
-| Frontend Development | Elvin, Kim, Nicole, John Rey, Rosel |
-| Cloud / Infrastructure | Jayvee, Nicole |
-| Ticketing & Email Notification | Adrian |
+| Role                           | Member(s)                           |
+| ------------------------------ | ----------------------------------- |
+| Project Lead / Integration     | Nicole, Jayvee                      |
+| Project Coordinator            | Nicole, Christian                   |
+| Knowledge Base Engineering     | Egie, Christian                     |
+| Backend Development            | Nicole, John Rey, Jayvee, Kim       |
+| AI / RAG Engineering           | Nicole, John Rey                    |
+| Frontend Development           | Elvin, Kim, Nicole, John Rey, Rosel |
+| Cloud / Infrastructure         | Jayvee, Nicole                      |
+| Ticketing & Email Notification | Adrian                              |
