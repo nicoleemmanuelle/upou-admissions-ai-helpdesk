@@ -4,6 +4,9 @@ A context-aware AI helpdesk assistant for the University of the Philippines Open
 
 ---
 
+## DEMO
+https://youtu.be/MRZZBYkwHl0?si=weY3y-8VIVWgjlK5
+
 ## Table of Contents
 
 - [Overview](#overview)
